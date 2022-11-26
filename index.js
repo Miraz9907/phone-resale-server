@@ -20,6 +20,7 @@ async function run(){
         const allCategoriesCollection = client.db('phoneResale').collection('allCategories');
         const categoriesCollection = client.db('phoneResale').collection('categories');
         const bookingsPhoneCollection = client.db('phoneResale').collection('bookingsPhone');
+        const usersCollection = client.db('phoneResale').collection('usersTable');
 
         app.get('/allcategories', async(req, res) =>{
             const query = {};
@@ -45,9 +46,34 @@ async function run(){
             console.log(bookingPhone);
             const result = await bookingsPhoneCollection.insertOne(bookingPhone);
             res.send(result);
-        })
+        });
+
+        //signup
+        app.post('/signup', async(req, res) =>{
+            const addUser = req.body
+            console.log(addUser);
+            const result = await usersCollection.insertOne(addUser);
+            res.send(result);
+        });
+
+        //login
+        app.put('/login', async(req, res) =>{
+            const user = req.body;
+            const filter = {email: user.email}
+            const option = { upsert: true};
+            const updateUser = {
+                $set:{
+                    name:user.name,
+                    email: user.email,
+                    role: user.role
+                }
+            }
+            const result = await usersCollection.updateOne(filter,updateUser,option);
+            res.send(result);
+        });
 
     }
+    
     finally{
 
     }
