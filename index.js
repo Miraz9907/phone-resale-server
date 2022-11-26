@@ -41,6 +41,13 @@ async function run(){
             
         });
 
+        app.get('/bookingsphone', async(req, res) =>{
+            const email = req.query.email;
+            const query = {email:email};
+            const bookings = await bookingsPhoneCollection.find(query).toArray();
+            res.send(bookings);
+        })
+
         app.post('/bookingsphone', async(req, res) =>{
             const bookingPhone = req.body
             console.log(bookingPhone);
@@ -73,7 +80,7 @@ async function run(){
         });
 
     }
-    
+
     finally{
 
     }
