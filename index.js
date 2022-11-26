@@ -19,6 +19,7 @@ async function run(){
     try{
         const allCategoriesCollection = client.db('phoneResale').collection('allCategories');
         const categoriesCollection = client.db('phoneResale').collection('categories');
+        const bookingsPhoneCollection = client.db('phoneResale').collection('bookingsPhone');
 
         app.get('/allcategories', async(req, res) =>{
             const query = {};
@@ -37,6 +38,13 @@ async function run(){
             const result = await cursor.toArray();
             res.send(result)
             
+        });
+
+        app.post('/bookingsphone', async(req, res) =>{
+            const bookingPhone = req.body
+            console.log(bookingPhone);
+            const result = await bookingsPhoneCollection.insertOne(bookingPhone);
+            res.send(result);
         })
 
     }
