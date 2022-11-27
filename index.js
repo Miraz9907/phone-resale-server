@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
@@ -96,15 +96,36 @@ async function run(){
             const allUsers = await usersCollection.find(query).toArray();
             res.send(allUsers);
 
-        })
+        });
 
-        //add user in DB by signup
-        app.post('/signup', async(req, res) =>{
+         //add user in DB by signup
+         app.post('/signup', async(req, res) =>{
             const addUser = req.body
             console.log(addUser);
             const result = await usersCollection.insertOne(addUser);
             res.send(result);
         });
+
+        app.put('/allusers/admin/:id', verifyJWT, async(req, res) =>{
+            const decodedEmail = req.decoded.email;
+            const query = {email: decodedEmail};
+            const user = await usersCollection.findOne(query);
+            if(user?.role !== 'admin'){
+                return res.status(403).send({message: 'forbidden access'})
+            }
+            const id = req.params.id;
+            const filter = {_id: ObjectId(id)};
+            const options = {upsert: true};
+            const updatedDoc = {
+                $set:{
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        });
+
+       
 
         //add user in DB by login
         app.put('/login', async(req, res) =>{
