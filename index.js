@@ -89,6 +89,14 @@ async function run(){
             }
             res.status(403).send({accessToken: ''})
         })
+        
+        //get all user from database
+        app.get('/allusers', async(req,res) =>{
+            const query = {};
+            const allUsers = await usersCollection.find(query).toArray();
+            res.send(allUsers);
+
+        })
 
         //add user in DB by signup
         app.post('/signup', async(req, res) =>{
