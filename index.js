@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -15,6 +16,23 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hic8zzf.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next){
+    console.log("token inside verifyJWT", req.headers.authorization);
+    const authHeader = req.headers.authorization;
+    if(!authHeader){
+        return res.status(401).send('unauthorized access');
+    }
+    const token = authHeader.split(' ')[1];
+
+    jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded){
+        if(err){
+        return res.status(403).send({message: 'forbidden access'})
+        }
+        req.decoded = decoded;
+        next();
+    })
+
+}
 async function run(){
     try{
         const allCategoriesCollection = client.db('phoneResale').collection('allCategories');
@@ -41,13 +59,19 @@ async function run(){
             
         });
 
-        app.get('/bookingsphone', async(req, res) =>{
+        //get modal data from DB
+        app.get('/bookingsphone',verifyJWT, async(req, res) =>{
             const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            if(email!== decodedEmail){
+                return res.status(403).send({message: "forbidden access"});
+            }
+            
             const query = {email:email};
             const bookings = await bookingsPhoneCollection.find(query).toArray();
             res.send(bookings);
         })
-
+        // post modal data to DB
         app.post('/bookingsphone', async(req, res) =>{
             const bookingPhone = req.body
             console.log(bookingPhone);
@@ -55,7 +79,18 @@ async function run(){
             res.send(result);
         });
 
-        //signup
+        app.get('/jwt', async(req, res) =>{
+            const email = req.query.email;
+            const query = {email:email};
+            const user = await usersCollection.findOne(query);
+            if(user){
+                const token = jwt.sign({email}, process.env.ACCESS_TOKEN, {expiresIn: '1h'})
+                return res.send({accessToken: token});
+            }
+            res.status(403).send({accessToken: ''})
+        })
+
+        //add user in DB by signup
         app.post('/signup', async(req, res) =>{
             const addUser = req.body
             console.log(addUser);
@@ -63,7 +98,7 @@ async function run(){
             res.send(result);
         });
 
-        //login
+        //add user in DB by login
         app.put('/login', async(req, res) =>{
             const user = req.body;
             const filter = {email: user.email}
