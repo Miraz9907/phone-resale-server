@@ -46,6 +46,19 @@ async function run(){
             res.send(options);
         });
 
+        // app.get('/categories', async(req, res) =>{
+        //     let query = {};
+        //     if(req.query.category_id){
+        //         query = {
+        //             category_id: req.query.category_id
+        //         }
+        //     }
+        //     const cursor = categoriesCollection.find(query);
+        //     const result = await cursor.toArray();
+        //     res.send(result)
+            
+        // });
+
         app.get('/categories', async(req, res) =>{
             let query = {};
             if(req.query.category_id){
@@ -91,12 +104,49 @@ async function run(){
         })
         
         //get all user from database
+        // app.get('/allusers', async(req,res) =>{
+        //     const query = {};
+        //     const allUsers = await usersCollection.find(query).toArray();
+        //     res.send(allUsers);
+
+        // });
+
+        //find seller and buyer
         app.get('/allusers', async(req,res) =>{
-            const query = {};
+            let query = {};
+            if(req.query.role){
+                query = {
+                    role: req.query.role
+                }
+            }
             const allUsers = await usersCollection.find(query).toArray();
             res.send(allUsers);
 
         });
+
+        //find all admin
+        app.get('/allusers/admin/:email', async(req, res) =>{
+            const email = req.params.email;
+            const query = { email }
+            const user = await usersCollection.findOne(query);
+            res.send({isAdmin: user?.role === 'admin'})
+        });
+        // //find all seller
+        app.get('/allusers/seller/:role', async(req, res) =>{
+            const role = req.params.role;
+            const query = { role }
+            const user = await usersCollection.findOne(query);
+            res.send({isSeller: user?.role === 'Seller'})
+        });
+
+         //find all seller
+        //  app.get('/allusers/:role', async(req, res) =>{
+        //     const role = req.params.role;
+        //     console.log(role);
+        //     const query = { role }
+        //     const user = await usersCollection.findOne(query);
+        //     res.send({isSeller: user?.role === 'Seller'})
+        // });
 
          //add user in DB by signup
          app.post('/signup', async(req, res) =>{
