@@ -3,9 +3,11 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const app = express();
+
 const port = process.env.PORT || 5000;
 
-const app = express();
 
 //middlewar
 app.use(cors());
@@ -47,16 +49,8 @@ async function run() {
       .db("phoneResale")
       .collection("bookingsPhone");
     const usersCollection = client.db("phoneResale").collection("usersTable");
+    const paymentCollection = client.db("phoneResale").collection("payments");
 
-    // const verifyAdmin = async (req, res, next) =>{
-    //     const decodedEmail = req.decoded.email;
-    //     const query = {email: decodedEmail};
-    //     const user = await usersCollection.findOne(query);
-    //     if(user?.role !== 'admin'){
-    //         return res.status(403).send({message: 'forbidden access'})
-    //     }
-    //     next();
-    // }
     app.get("/allcategories", async (req, res) => {
       const query = {};
       const options = await allCategoriesCollection.find(query).toArray();
@@ -65,9 +59,9 @@ async function run() {
 
     app.get("/categories", async (req, res) => {
       let query = {};
-      if (req.query.category_id) {
+      if (req.query.category) {
         query = {
-          category_id: req.query.category_id,
+          category: req.query.category,
         };
       }
       const cursor = categoriesCollection.find(query);
@@ -78,10 +72,10 @@ async function run() {
     //get modal data from DB
     app.get("/bookingsphone", async (req, res) => {
       const email = req.query.email;
-    //   const decodedEmail = req.decoded.email;
-    //   if (email !== decodedEmail) {
-    //     return res.status(403).send({ message: "forbidden access1" });
-    //   }
+      //   const decodedEmail = req.decoded.email;
+      //   if (email !== decodedEmail) {
+      //     return res.status(403).send({ message: "forbidden access1" });
+      //   }
 
       const query = { email: email };
       const bookings = await bookingsPhoneCollection.find(query).toArray();
@@ -93,6 +87,50 @@ async function run() {
       console.log(bookingPhone);
       const result = await bookingsPhoneCollection.insertOne(bookingPhone);
       res.send(result);
+    });
+
+    //payment
+    app.get("/bookings/:id", async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: ObjectId(id) };
+        const booking = await bookingsPhoneCollection.findOne(query);
+        res.send(booking);
+    });
+
+    // TODO: paymet
+    app.post("/create-payment-intent", async (req, res) => {
+        const booking = req.body;
+        console.log(booking)
+        const price = booking.price;
+        const amount = parseInt(price) * 100;
+
+        const paymentIntent = await stripe.paymentIntents.create({
+            currency: "usd",
+            amount: amount,
+            payment_method_types: ["card"],
+        });
+        res.send({
+            clientSecret: paymentIntent.client_secret,
+        });
+    });
+
+    // TODO: payment
+    app.post("/payments", async (req, res) => {
+        const payment = req.body;
+        const result = await paymentCollection.insertOne(payment);
+        const id = payment.bookingId;
+        const filter = { _id: ObjectId(id) };
+        const updatedDoc = {
+            $set: {
+                paid: true,
+                transactionId: payment.transactionId,
+            },
+        };
+        const updatedResult = await bookingsPhoneCollection.updateOne(
+            filter,
+            updatedDoc
+        );
+        res.send(result);
     });
 
     app.get("/jwt", async (req, res) => {
@@ -121,6 +159,13 @@ async function run() {
       res.send(allUsers);
     });
 
+    app.post("/addproduct", async (req, res) => {
+      const addProduct = req.body;
+      console.log(addProduct);
+      const result = await categoriesCollection.insertOne(addProduct);
+      res.send(result);
+    });
+
     app.delete("/allusers/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
@@ -134,6 +179,14 @@ async function run() {
       const query = { email };
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.role === "admin" });
+    });
+
+    //seller
+    app.get("/allusers/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isSeller: user?.role === "Seller" });
     });
 
     //add user in DB by signup
