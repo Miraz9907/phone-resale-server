@@ -40,24 +40,12 @@ async function run(){
         const bookingsPhoneCollection = client.db('phoneResale').collection('bookingsPhone');
         const usersCollection = client.db('phoneResale').collection('usersTable');
 
+
         app.get('/allcategories', async(req, res) =>{
             const query = {};
             const options = await allCategoriesCollection.find(query).toArray();
             res.send(options);
         });
-
-        // app.get('/categories', async(req, res) =>{
-        //     let query = {};
-        //     if(req.query.category_id){
-        //         query = {
-        //             category_id: req.query.category_id
-        //         }
-        //     }
-        //     const cursor = categoriesCollection.find(query);
-        //     const result = await cursor.toArray();
-        //     res.send(result)
-            
-        // });
 
         app.get('/categories', async(req, res) =>{
             let query = {};
@@ -102,14 +90,6 @@ async function run(){
             }
             res.status(403).send({accessToken: ''})
         })
-        
-        //get all user from database
-        // app.get('/allusers', async(req,res) =>{
-        //     const query = {};
-        //     const allUsers = await usersCollection.find(query).toArray();
-        //     res.send(allUsers);
-
-        // });
 
         //find seller and buyer
         app.get('/allusers', async(req,res) =>{
@@ -124,6 +104,13 @@ async function run(){
 
         });
 
+        app.delete('/allusers/:id', async(req, res) =>{
+            const id = req.params.id;
+            const filter = {_id: ObjectId(id)};
+            const result = await usersCollection.deleteOne(filter);
+            res.send(result);
+        })
+
         //find all admin
         app.get('/allusers/admin/:email', async(req, res) =>{
             const email = req.params.email;
@@ -131,22 +118,6 @@ async function run(){
             const user = await usersCollection.findOne(query);
             res.send({isAdmin: user?.role === 'admin'})
         });
-        // //find all seller
-        app.get('/allusers/seller/:role', async(req, res) =>{
-            const role = req.params.role;
-            const query = { role }
-            const user = await usersCollection.findOne(query);
-            res.send({isSeller: user?.role === 'Seller'})
-        });
-
-         //find all seller
-        //  app.get('/allusers/:role', async(req, res) =>{
-        //     const role = req.params.role;
-        //     console.log(role);
-        //     const query = { role }
-        //     const user = await usersCollection.findOne(query);
-        //     res.send({isSeller: user?.role === 'Seller'})
-        // });
 
          //add user in DB by signup
          app.post('/signup', async(req, res) =>{
@@ -156,7 +127,8 @@ async function run(){
             res.send(result);
         });
 
-        app.put('/allusers/admin/:id', verifyJWT, async(req, res) =>{
+
+        app.put('/allusers/admin/:id',verifyJWT, async(req, res) =>{
             const decodedEmail = req.decoded.email;
             const query = {email: decodedEmail};
             const user = await usersCollection.findOne(query);
@@ -168,20 +140,39 @@ async function run(){
             const options = {upsert: true};
             const updatedDoc = {
                 $set:{
-                    role: 'admin'
+                    // role: 'admin',
+                    sellerType: 'verified'
                 }
             }
-            const result = await usersCollection.updateOne(filter, updatedDoc, options);
+             const result = await usersCollection.updateOne(filter, updatedDoc, options);
+            //const result = await categoriesCollection.updateOne(filter, updatedDoc, options);
             res.send(result);
         });
 
        
 
         //add user in DB by login
-        app.put('/login', async(req, res) =>{
+        // app.put('/login', async(req, res) =>{
+        //     const user = req.body;
+        //     const filter = {email: user.email}
+        //     const option = { upsert: true};
+        //     const updateUser = {
+        //         $set:{
+        //             name:user.name,
+        //             email: user.email,
+        //             role: user.role
+        //         }
+        //     }
+        //     const result = await usersCollection.updateOne(filter,updateUser,option);
+        //     res.send(result);
+        // });
+
+        // Save user email & generate JWT
+        app.put('/user/:email',verifyJWT, async(req, res) =>{
+            const email = req.params.email
             const user = req.body;
-            const filter = {email: user.email}
-            const option = { upsert: true};
+            const filter = {email: email}
+            const options = { upsert: true};
             const updateUser = {
                 $set:{
                     name:user.name,
@@ -189,8 +180,12 @@ async function run(){
                     role: user.role
                 }
             }
-            const result = await usersCollection.updateOne(filter,updateUser,option);
-            res.send(result);
+            const result = await usersCollection.updateOne(filter,updateUser,options);
+            console.log(result);
+
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN, {expiresIn: '1h'})
+            console.log(token)
+            res.send({result, token});
         });
 
     }
