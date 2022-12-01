@@ -165,10 +165,19 @@ async function run() {
       res.send(result);
     });
 
+    //user delete
     app.delete("/allusers/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await usersCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    //product delete
+    app.delete("/deleteproduct/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await categoriesCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -190,11 +199,11 @@ async function run() {
 
     //Buyer
     app.get("/allusers/buyer/:email", async (req, res) => {
-        const email = req.params.email;
-        const query = { email };
-        const user = await usersCollection.findOne(query);
-        res.send({ isBuyer: user?.role === "Buyer" });
-      });
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isBuyer: user?.role === "Buyer" });
+    });
 
     //add user in DB by signup
     app.post("/signup", async (req, res) => {
@@ -204,69 +213,54 @@ async function run() {
       res.send(result);
     });
 
-
     // specific booked data
-    app.get('/booked', async(req, res) =>{
-            
-            
-        let query ={}
-         if(req.query.email){
-            query = {
-                email: req.query.email
-               }
-      
-        }
-        else if(req.query.advertise){
-          query = {
-            advertise: req.query.advertise
-           }
-      
-        }
-        const cursor = categoriesCollection.find(query);
-        const result = await cursor.toArray();
-        
-        res.send(result);
-      
-      });
+    app.get("/booked", async (req, res) => {
+      let query = {};
+      if (req.query.email) {
+        query = {
+          email: req.query.email,
+        };
+      } else if (req.query.advertise) {
+        query = {
+          advertise: req.query.advertise,
+        };
+      }
+      const cursor = categoriesCollection.find(query);
+      const result = await cursor.toArray();
 
-      app.get('/mydata', async(req, res) =>{
-            
-            
-        let query ={}
-         if(req.query.email){
-            query = {
-                email: req.query.email
-               }
-      
-        }
-        else if(req.query.advertise){
-          query = {
-            advertise: req.query.advertise
-           }
-      
-        }
-        const cursor = categoriesCollection.find(query);
-        const result = await cursor.toArray();
-        
-        res.send(result);
-      
-      });
+      res.send(result);
+    });
 
-      //advertise item
-      app.patch('/advertiseupdate/:id', async (req, res) => {
-        const id = req.params.id;
-        const advertise = req.body.advertise
-        const query = { _id: ObjectId(id) }
-        const updatedDoc = {
-            $set:{
-              advertise: advertise
-            }
-        }
-        const result = await categoriesCollection.updateOne(query, updatedDoc);
-        res.send(result);
-      });
-     
-      
+    app.get("/mydata", async (req, res) => {
+      let query = {};
+      if (req.query.email) {
+        query = {
+          email: req.query.email,
+        };
+      } else if (req.query.advertise) {
+        query = {
+          advertise: req.query.advertise,
+        };
+      }
+      const cursor = categoriesCollection.find(query);
+      const result = await cursor.toArray();
+
+      res.send(result);
+    });
+
+    //advertise item
+    app.patch("/advertiseupdate/:id", async (req, res) => {
+      const id = req.params.id;
+      const advertise = req.body.advertise;
+      const query = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          advertise: advertise,
+        },
+      };
+      const result = await categoriesCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
 
     app.put("/allusers/admin/:id", verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
@@ -289,7 +283,6 @@ async function run() {
         updatedDoc,
         options
       );
-      //const result = await categoriesCollection.updateOne(filter, updatedDoc, options);
       res.send(result);
     });
 
