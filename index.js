@@ -81,7 +81,7 @@ async function run() {
       res.send(bookings);
     });
     // post modal data to DB
-    app.post("/bookingsphone", verifyJWT, async (req, res) => {
+    app.post("/bookingsphone", async (req, res) => {
       const bookingPhone = req.body;
       console.log(bookingPhone);
       const result = await bookingsPhoneCollection.insertOne(bookingPhone);
@@ -102,7 +102,6 @@ async function run() {
       console.log(booking);
       const price = booking.price;
       const amount = parseInt(price) * 100;
-
       const paymentIntent = await stripe.paymentIntents.create({
         currency: "usd",
         amount: amount,
@@ -165,19 +164,19 @@ async function run() {
       res.send(result);
     });
 
-    //user delete
-    app.delete("/allusers/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const result = await usersCollection.deleteOne(filter);
-      res.send(result);
-    });
-
     //product delete
     app.delete("/deleteproduct/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await categoriesCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    //user delete
+    app.delete('/deleteuser/:id', async(req, res)=>{
+      const id = req.params.id;
+      const query = {_id: ObjectId(id)};
+      const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -261,30 +260,66 @@ async function run() {
       const result = await categoriesCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
-
-    app.put("/allusers/admin/:id", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const query = { email: decodedEmail };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
-        return res.status(403).send({ message: "forbidden access" });
+//verify seller
+app.patch('/verifiedupdate/:id', async (req, res) => {
+  const id = req.params.id;
+  const verified = req.body.verified;
+  const query = { _id: ObjectId(id) }
+  const updatedDoc = {
+      $set:{
+        verified: verified
       }
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const options = { upsert: true };
-      const updatedDoc = {
-        $set: {
-          // role: 'admin',
-          sellerType: "verified",
-        },
-      };
-      const result = await usersCollection.updateOne(
-        filter,
-        updatedDoc,
-        options
-      );
-      res.send(result);
-    });
+  }
+  const result = await usersCollection.updateOne(query, updatedDoc);
+  res.send(result);
+});
+app.patch('/verifiedcataupdate/:email', async (req, res) => {
+  const email = req.params.email;
+  const verified = req.body.verified;
+  const query = { email: email }
+  const updatedDoc = {
+      $set:{
+        verified: verified
+      }
+  }
+  const result = await categoriesCollection.updateMany(query, updatedDoc);
+  res.send(result);
+});
+
+// update item
+app.patch('/reportupdate/:id', async (req, res) => {
+  const id = req.params.id;
+  const report = req.body.report;
+  const query = { _id: ObjectId(id) }
+  const updatedDoc = {
+      $set:{
+        report: report
+      }
+  }
+  const result = await categoriesCollection.updateOne(query, updatedDoc);
+  res.send(result);
+});
+
+//reported item
+app.get('/allproduct', async(req, res) =>{
+  let query ={}
+  if(req.query.report){
+    query = {
+      report: req.query.report
+       }
+  
+
+  }
+  
+  const cursor = categoriesCollection.find(query);
+  const result = await cursor.toArray();
+  
+  res.send(result);
+
+});
+
+
+
 
     // Save user email & generate JWT
     app.put("/user/:email", verifyJWT, async (req, res) => {
