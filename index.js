@@ -318,9 +318,6 @@ app.get('/allproduct', async(req, res) =>{
 
 });
 
-
-
-
     // Save user email & generate JWT
     app.put("/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
